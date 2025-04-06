@@ -53,7 +53,7 @@ func main() {
 	)
 
 	getDDL := mcp.NewTool("get_ddl",
-		mcp.WithDescription("Get DDL of the database"),
+		mcp.WithDescription("Get DDL of the database. The first content is the whole response, and the second content is unmarshalled proto_descriptors."),
 		mcp.WithString("project",
 			mcp.Required(),
 			mcp.Description("Google Cloud project"),
