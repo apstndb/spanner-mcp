@@ -68,9 +68,30 @@ func main() {
 		),
 	)
 
+	updateDDL := mcp.NewTool("update_ddl",
+		mcp.WithDescription("Update DDL of the database"),
+		mcp.WithString("project",
+			mcp.Required(),
+			mcp.Description("Google Cloud project"),
+		),
+		mcp.WithString("instance",
+			mcp.Required(),
+			mcp.Description("Spanner instance id"),
+		),
+		mcp.WithString("database",
+			mcp.Required(),
+			mcp.Description("Spanner database id"),
+		),
+		mcp.WithArray("statements",
+			mcp.Required(),
+			mcp.Description("DDL statements"),
+		),
+	)
+
 	// Add plan handler
 	s.AddTool(plan, planHandler)
 	s.AddTool(getDDL, getDDLHandler)
+	s.AddTool(updateDDL, updateDDLHandler)
 
 	// Start the stdio server
 	if err := server.ServeStdio(s); err != nil {
@@ -133,6 +154,43 @@ func getDDLHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallT
 			mcp.NewTextContent(prototext.Format(&fds)),
 		},
 	}, nil
+}
+
+func updateDDLHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	req, err := mapToStruct[struct {
+		Project    string
+		Instance   string
+		Database   string
+		Statements []string
+	}](request.Params.Arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := database.NewDatabaseAdminClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	resp, err := client.UpdateDatabaseDdl(ctx, &databasepb.UpdateDatabaseDdlRequest{
+		Database:   databasePath(req.Project, req.Instance, req.Database),
+		Statements: req.Statements,
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = resp.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := resp.Metadata()
+	if err != nil {
+		return nil, err
+	}
+
+	return mcp.NewToolResultText(prototext.Format(metadata)), nil
 }
 
 func databasePath(project string, instance string, database string) string {

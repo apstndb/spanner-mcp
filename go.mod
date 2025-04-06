@@ -5,6 +5,7 @@ go 1.24
 require (
 	cloud.google.com/go/spanner v1.78.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/golang/protobuf v1.5.4
 	github.com/mark3labs/mcp-go v0.18.0
 	google.golang.org/protobuf v1.36.6
 )
